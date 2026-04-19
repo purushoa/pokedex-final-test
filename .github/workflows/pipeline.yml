@@ -51,5 +51,6 @@ jobs:
           severity: ${{ needs.simple_deployment_pipeline.result == 'success' && 'info' || 'error' }}
           details: ${{ needs.simple_deployment_pipeline.result == 'success' && 'Deployment Succeeded!' || 'Build failed!' }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          # Simple text often avoids the JSON parsing error
-          text: Deployment status is ${{ needs.simple_deployment_pipeline.result }}
+          text: ${{ needs.simple_deployment_pipeline.result == 'success' && 'A new version is live!' || 'Something went wrong.' }}
+          # Adding description helps the webhook parse correctly
+          description: Commit ${{ github.sha }} by ${{ github.actor }}
