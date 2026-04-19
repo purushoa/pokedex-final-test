@@ -45,12 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Send Notification
+      - name: Notify
         uses: rjstone/discord-webhook-notify@v1
         with:
-          severity: ${{ needs.simple_deployment_pipeline.result == 'success' && 'info' || 'error' }}
-          details: ${{ needs.simple_deployment_pipeline.result == 'success' && 'Deployment Succeeded!' || 'Build failed!' }}
+          severity: info
+          details: Job finished
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          text: ${{ needs.simple_deployment_pipeline.result == 'success' && 'A new version is live!' || 'Something went wrong.' }}
-          # Adding description helps the webhook parse correctly
-          description: Commit ${{ github.sha }} by ${{ github.actor }}
+          text: Deployment check complete.
