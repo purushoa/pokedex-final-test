@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, useMatch } from 'react-router-dom' // Removed Link, added useMatch
+import { Routes, Route, useMatch } from 'react-router-dom'
 import { useApi } from './useApi'
 import LoadingSpinner from './LoadingSpinner'
 import ErrorMessage from './ErrorMessage'
@@ -26,10 +26,13 @@ const App = () => {
   let next = null
   let previous = null
 
-  if (match && match.params) {
-    const pokemonId = pokemonList.find(({ name }) => name === match.params.name).id
-    previous = pokemonList.find(({ id }) => id === pokemonId - 1)
-    next = pokemonList.find(({ id }) => id === pokemonId + 1)
+  if (match && match.params && pokemonList) {
+    const pokemon = pokemonList.find(({ name }) => name === match.params.name)
+    if (pokemon) {
+      const pokemonId = pokemon.id
+      previous = pokemonList.find(({ id }) => id === pokemonId - 1)
+      next = pokemonList.find(({ id }) => id === pokemonId + 1)
+    }
   }
 
   return (
