@@ -45,20 +45,11 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Success Notification
-        if: ${{ needs.simple_deployment_pipeline.result == 'success' }}
+      - name: Send Notification
         uses: rjstone/discord-webhook-notify@v1
         with:
-          severity: info
-          details: Deployment Succeeded!
+          severity: ${{ needs.simple_deployment_pipeline.result == 'success' && 'info' || 'error' }}
+          details: ${{ needs.simple_deployment_pipeline.result == 'success' && 'Deployment Succeeded!' || 'Build failed!' }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          text: A new version of the Pokedex is live on Render.
-      
-      - name: Failure Notification
-        if: ${{ needs.simple_deployment_pipeline.result == 'failure' }}
-        uses: rjstone/discord-webhook-notify@v1
-        with:
-          severity: error
-          details: Deployment Failed!
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          text: Build failed on commit ${{ github.sha }} by ${{ github.actor }}.
+          # Simple text often avoids the JSON parsing error
+          text: Deployment status is ${{ needs.simple_deployment_pipeline.result }}
