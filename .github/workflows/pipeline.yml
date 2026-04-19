@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Notify
-        uses: rjstone/discord-webhook-notify@v1
-        with:
-          severity: info
-          details: Pipeline Finished
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          text: Deployment check for Pokedex is complete.
+      - name: Send Discord Notification via curl
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "content": "Deployment Status: ${{ needs.simple_deployment_pipeline.result }}. Check by ${{ github.actor }} on commit ${{ github.sha }}"
+          }'
