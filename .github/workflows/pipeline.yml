@@ -43,7 +43,7 @@ jobs:
   discord_notification:
     needs: [simple_deployment_pipeline]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() # This ensures you get a "Failure" notification if the build fails
     steps:
       - name: Send Discord Notification
         uses: rjstone/discord-webhook-notify@v1
@@ -51,3 +51,4 @@ jobs:
           severity: ${{ needs.simple_deployment_pipeline.result == 'success' && 'info' || 'error' }}
           details: ${{ needs.simple_deployment_pipeline.result == 'success' && 'Deployment Succeeded!' || 'Build failed!' }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          text: ${{ needs.simple_deployment_pipeline.result == 'error' && format('Commit {0} by {1} failed.', github.sha, github.actor) || '' }}
