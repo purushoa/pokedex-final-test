@@ -25,19 +25,29 @@ jobs:
       - name: Test
         run: npm test
       - name: Trigger deployment
-        # Only deploy on pushes to main, not on Pull Requests (Exercise 14)
-        if: ${{ github.event_name == 'push' }}
-        run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
+        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+        run: curl "${{ secrets.RENDER_DEPLOY_HOOK }}"
 
   tag_release:
     needs: [simple_deployment_pipeline]
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
     steps:
       - uses: actions/checkout@v4
       - name: Bump version and push tag
-        # Only tag on pushes to main AND if #skip is NOT in any commit message (Exercise 15 & 16)
-        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
         uses: anothrNick/github-tag-action@4ed44965e0db8dab2b466a16da04aec3cc312fd8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BUMP: patch
+
+  discord_notification:
+    needs: [simple_deployment_pipeline]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send Discord Notification
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: ${{ needs.simple_deployment_pipeline.result == 'success' && 'info' || 'error' }}
+          details: ${{ needs.simple_deployment_pipeline.result == 'success' && 'Deployment Succeeded!' || 'Build failed!' }}
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
