@@ -49,6 +49,6 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: info
-          details: Job finished
+          details: Pipeline Finished
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          text: Deployment check complete.
+          text: Deployment check for Pokedex is complete.
