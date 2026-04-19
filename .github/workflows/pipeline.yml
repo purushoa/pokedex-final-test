@@ -45,10 +45,20 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Send Discord Notification
+      - name: Success Notification
+        if: ${{ needs.simple_deployment_pipeline.result == 'success' }}
         uses: rjstone/discord-webhook-notify@v1
         with:
-          severity: ${{ needs.simple_deployment_pipeline.result == 'success' && 'info' || 'error' }}
-          details: ${{ needs.simple_deployment_pipeline.result == 'success' && 'Deployment Succeeded!' || 'Build failed!' }}
+          severity: info
+          details: Deployment Succeeded!
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          text: ${{ needs.simple_deployment_pipeline.result == 'success' && 'The new version is live on Render!' || format('Commit {0} by {1} failed the build.', github.sha, github.actor) }}
+          text: A new version of the Pokedex is live on Render.
+      
+      - name: Failure Notification
+        if: ${{ needs.simple_deployment_pipeline.result == 'failure' }}
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: error
+          details: Deployment Failed!
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          text: Build failed on commit ${{ github.sha }} by ${{ github.actor }}.
