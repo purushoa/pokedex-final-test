@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: URL Health Check
-        uses: jasonkeller/url-health-check@v1
+        uses: jasonetco/url-health-check@v1
         with:
           url: https://pokedex-deployment-audr.onrender.com/health
           max-attempts: 3
