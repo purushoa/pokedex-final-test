@@ -9,44 +9,103 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  simple_deployment_pipeline:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies
-        run: npm install
-      - name: Check style
-        run: npx eslint "**/*.{js,jsx}"
-      - name: Build
-        run: npm run build
-      - name: Test
-        run: npm test
-      - name: Trigger deployment
-        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+      - run: npm install
+      - run: npm run eslint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npx playwright install --with-deps
+      - name: Build and Run E2E
+        run: |
+          npm run build
+          npm run start-prod & 
+          npx wait-on http://127.0.0.1:8080 --timeout 60000
+          npm run test:e2e
+        env:
+          PORT: 8080
+
+  deploy:
+    needs: [lint, test, build, e2e]
+    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deployment
         run: curl "${{ secrets.RENDER_DEPLOY_HOOK }}"
 
   tag_release:
-    needs: [simple_deployment_pipeline]
+    needs: [lint, test, build, e2e]
+    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') && success() }}
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@4ed44965e0db8dab2b466a16da04aec3cc312fd8
+        uses: anothrNick/github-tag-action@1.64.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BUMP: patch
 
-  discord_notification:
-    needs: [simple_deployment_pipeline]
+  notify_success:
+    needs: [deploy, tag_release]
+    if: ${{ success() }}
     runs-on: ubuntu-latest
-    if: always()
     steps:
-      - name: Send Discord Notification via curl
-        run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
-          -H "Content-Type: application/json" \
-          -d '{"content": "Deployment successful!"}'
+      - name: Send success notification
+        uses: Ilshidur/action-discord@0.3.2
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.FINAL_DISCORD_WEBHOOK }}
+        with:
+          args: |
+            ✅ Deployment successful!
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+
+  notify_failure:
+    needs: [lint, test, build, e2e, deploy, tag_release]
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send failure notification
+        uses: Ilshidur/action-discord@0.3.2
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.FINAL_DISCORD_WEBHOOK }}
+        with:
+          args: |
+            ❌ Build failed!
+            Check logs: https://github.com/${{ github.repository }} /actions/runs/${{ github.run_id }}
